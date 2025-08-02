@@ -1,0 +1,26 @@
+/* You can leave this mostly empty or add very basic global styles */
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+/* Custom styles for Bootstrap Tabs in dark mode */
+html.dark .nav-tabs-dark .nav-link {
+    color: #ddd; /* Light gray text for dark mode tabs */
+    border-color: #444; /* Darker border */
+    background-color: #333; /* Darker background */
+}
+
+html.dark .nav-tabs-dark .nav-link.active {
+    color: #ffc107; /* Orange for active tab text */
+    background-color: #222; /* Even darker active background */
+    border-color: #ffc107 #ffc107 #222; /* Orange border for active tab */
+}
