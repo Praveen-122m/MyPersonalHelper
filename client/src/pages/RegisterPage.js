@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react'; // Added useEffect for cleanup
 import axios from 'axios';
 import { useNavigate, Link } from 'react-router-dom';
 import { Container, Form, Button, Card, Alert, Row, Col } from 'react-bootstrap';
@@ -23,10 +23,27 @@ const RegisterPage = ({ setUserInfo }) => {
   const [bio, setBio] = useState('');
   const [hourlyRate, setHourlyRate] = useState('');
   const [areaOfOperation, setAreaOfOperation] = useState('');
-  // Reverted: Identity Verification Fields - now using simple URL strings
+  
+  // File objects for upload
   const [aadhaarNumber, setAadhaarNumber] = useState('');
-  const [idProofUrl, setIdProofUrl] = useState(''); // Reverted to single URL field
-  const [profilePictureUrl, setProfilePictureUrl] = useState(''); // Reverted to profile pic URL
+  const [profilePictureFile, setProfilePictureFile] = useState(null); 
+  const [idProofFile, setIdProofFile] = useState(null); // Single ID proof file
+
+  // NEW STATE: For image previews
+  const [profilePicturePreviewUrl, setProfilePicturePreviewUrl] = useState(null);
+  const [idProofPreviewUrl, setIdProofPreviewUrl] = useState(null);
+
+  // NEW useEffect for preview cleanup
+  useEffect(() => {
+    return () => {
+      if (profilePicturePreviewUrl) {
+        URL.revokeObjectURL(profilePicturePreviewUrl);
+      }
+      if (idProofPreviewUrl) {
+        URL.revokeObjectURL(idProofPreviewUrl);
+      }
+    };
+  }, [profilePicturePreviewUrl, idProofPreviewUrl]);
 
   const submitHandler = async (e) => {
     e.preventDefault();
@@ -38,34 +55,39 @@ const RegisterPage = ({ setUserInfo }) => {
       return;
     }
 
-    // Reverted: Sending data as JSON again, not FormData
-    const registerData = {
-      name, email, password, role, phone, address,
-      city: 'Pali', state: 'Rajasthan',
-    };
+    // NEW: Use FormData for file uploads
+    const formData = new FormData();
+    formData.append('name', name);
+    formData.append('email', email);
+    formData.append('password', password);
+    formData.append('role', role);
+    formData.append('phone', phone);
+    formData.append('address', address);
+    formData.append('city', 'Pali'); // Hardcode city/state for now
+    formData.append('state', 'Rajasthan');
 
     if (role === 'helper') {
-      registerData.services = services.split(',').map(s => s.trim()).filter(s => s !== '');
-      registerData.experience = experience;
-      registerData.bio = bio;
-      registerData.hourlyRate = hourlyRate;
-      registerData.areaOfOperation = areaOfOperation.split(',').map(a => a.trim()).filter(a => a !== '');
-      // Reverted: Add identity verification fields as strings
-      registerData.aadhaarNumber = aadhaarNumber;
-      registerData.idProofUrl = idProofUrl; // Single URL field
-      registerData.profilePicture = profilePictureUrl; // Profile pic URL
+      formData.append('services', services);
+      formData.append('experience', experience);
+      formData.append('bio', bio);
+      formData.append('hourlyRate', hourlyRate);
+      formData.append('areaOfOperation', areaOfOperation);
+      
+      if (aadhaarNumber) formData.append('aadhaarNumber', aadhaarNumber);
+      if (profilePictureFile) formData.append('profilePicture', profilePictureFile);
+      if (idProofFile) formData.append('idProof', idProofFile); // Single ID proof file
     }
 
     try {
       const config = {
         headers: {
-          'Content-Type': 'application/json', // Reverted to JSON content type
+          // No Content-Type for FormData
         },
       };
 
       const { data } = await axios.post(
         'http://localhost:5000/api/auth/register',
-        registerData, // Send JSON data
+        formData, 
         config
       );
 
@@ -73,10 +95,29 @@ const RegisterPage = ({ setUserInfo }) => {
       setUserInfo(data);
       setSuccess('Registration successful! You are now logged in. Redirecting...');
 
+      // Clear previews after successful registration
+      setProfilePicturePreviewUrl(null);
+      setIdProofPreviewUrl(null);
+
       navigate('/');
 
     } catch (err) {
       setError(err.response && err.response.data.message ? err.response.data.message : 'Registration failed. Please try again.');
+    }
+  };
+
+  const handleFileChange = (e, setFileState, setPreviewUrlState = null) => {
+    const file = e.target.files[0];
+    setFileState(file); // Set the File object
+
+    // Create and set preview URL if a file is selected and a preview state setter is provided
+    if (setPreviewUrlState) {
+      if (file) {
+        const url = URL.createObjectURL(file);
+        setPreviewUrlState(url);
+      } else {
+        setPreviewUrlState(null); // Clear preview if no file selected
+      }
     }
   };
 
@@ -90,7 +131,7 @@ const RegisterPage = ({ setUserInfo }) => {
           <h2 className="text-center mb-4">Create Your Account</h2>
           {error && <Alert variant="danger">{error}</Alert>}
           {success && <Alert variant="success">{success}</Alert>}
-          <Form onSubmit={submitHandler}>
+          <Form onSubmit={submitHandler}> 
             <Row className="mb-3">
               <Form.Group as={Col} controlId="name">
                 <Form.Label className={labelClass}>Full Name</Form.Label>
@@ -124,15 +165,20 @@ const RegisterPage = ({ setUserInfo }) => {
             {role === 'helper' && (
               <Card className={`p-4 mb-4 ${theme === 'dark' ? 'bg-dark' : 'bg-light'}`}>
                 <h4 className="mb-3 text-center text-primary">Service Provider Details</h4>
-                <Form.Group className="mb-3" controlId="profilePictureUrl"> {/* Reverted to URL */}
-                    <Form.Label className={labelClass}>Profile Picture URL</Form.Label>
+                <Form.Group className="mb-3" controlId="profilePictureFile">
+                    <Form.Label className={labelClass}>Profile Picture</Form.Label>
                     <Form.Control 
-                        type="url" // Use type="url" for visual hint
-                        placeholder="Link to your profile picture" 
-                        value={profilePictureUrl} 
-                        onChange={(e) => setProfilePictureUrl(e.target.value)} 
-                        className={inputClass} 
+                        type="file" 
+                        onChange={(e) => handleFileChange(e, setProfilePictureFile, setProfilePicturePreviewUrl)} // Pass preview setter
+                        className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''} 
+                        accept="image/*"
                     />
+                    {profilePictureFile && <Form.Text className={labelClass}>Selected: {profilePictureFile.name}</Form.Text>}
+                    {profilePicturePreviewUrl && ( // Display live preview
+                        <div className="mt-2">
+                            <img src={profilePicturePreviewUrl} alt="Profile Preview" className="img-fluid rounded-circle" style={{width: '100px', height: '100px', objectFit: 'cover', border: `2px solid ${theme === 'dark' ? '#ffc107' : '#0d6efd'}`}} />
+                        </div>
+                    )}
                 </Form.Group>
                 <Form.Group className="mb-3" controlId="services">
                   <Form.Label className={labelClass}>Services Offered (Comma-separated)</Form.Label>
@@ -153,15 +199,12 @@ const RegisterPage = ({ setUserInfo }) => {
                   <Form.Control as="textarea" rows={3} placeholder="e.g., Certified electrician with 10 years experience." value={bio} onChange={(e) => setBio(e.target.value)} maxLength="500" className={inputClass} />
                 </Form.Group>
                 <Form.Group className="mb-3" controlId="areaOfOperation">
-                  <Form.Label className={labelClass}>Areas of Operation (Comma-separated localities in Pali)</Form.Label>
+                  <Form.Label className={labelClass}>Areas of Operation</Form.Label>
                   <Form.Control type="text" placeholder="e.g., Housing Board, Mandiya Road" value={areaOfOperation} onChange={(e) => setAreaOfOperation(e.target.value)} className={inputClass} />
                 </Form.Group>
 
-                {/* NEW: Identity Verification Fields - Reverted to single URL input */}
-                <h5 className={`mt-4 mb-3 ${theme === 'dark' ? 'text-light' : 'text-dark'}`}>Identity Verification (Demo)</h5>
-                <Alert variant="info" className="mb-3">
-                    <i className="bi bi-info-circle-fill me-2"></i> Actual document upload will be implemented in future versions for full verification.
-                </Alert>
+                {/* NEW: Identity Verification File Uploads */}
+                <h5 className={`mt-4 mb-3 ${theme === 'dark' ? 'text-light' : 'text-dark'}`}>Identity Verification (Upload Photo)</h5>
                 <Form.Group className="mb-3" controlId="aadhaarNumber">
                     <Form.Label className={labelClass}>Aadhaar Number (12 Digits)</Form.Label>
                     <Form.Control 
@@ -175,16 +218,21 @@ const RegisterPage = ({ setUserInfo }) => {
                         minLength="12"
                     />
                 </Form.Group>
-                <Form.Group className="mb-3" controlId="idProofUrl"> {/* Reverted */}
-                    <Form.Label className={labelClass}>ID Proof Document URL (e.g., Aadhaar Card Photo)</Form.Label>
+                <Form.Group className="mb-3" controlId="idProofFile"> {/* Single ID Proof File Input */}
+                    <Form.Label className={labelClass}>ID Proof Photo (e.g., Aadhaar Card)</Form.Label>
                     <Form.Control 
-                        type="url" // Use type="url" for visual hint
-                        placeholder="Link to your Aadhaar card photo (e.g., Google Drive link)" 
-                        value={idProofUrl} 
-                        onChange={(e) => setIdProofUrl(e.target.value)} 
+                        type="file" 
+                        onChange={(e) => handleFileChange(e, setIdProofFile, setIdProofPreviewUrl)} // Pass preview setter
                         required={role === 'helper'} 
-                        className={inputClass} 
+                        className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''} 
+                        accept="image/*"
                     />
+                     {idProofFile && <Form.Text className={labelClass}>Selected: {idProofFile.name}</Form.Text>}
+                     {idProofPreviewUrl && ( // Display live preview
+                        <div className="mt-2">
+                            <img src={idProofPreviewUrl} alt="ID Proof Preview" className="img-fluid rounded" style={{maxWidth: '200px', border: `2px solid ${theme === 'dark' ? '#ffc107' : '#0d6efd'}`}} />
+                        </div>
+                    )}
                 </Form.Group>
               </Card>
             )}

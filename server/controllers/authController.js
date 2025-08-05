@@ -1,7 +1,7 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
-// Removed Cloudinary import
+// Removed Cloudinary import (if it was there)
 
 const generateToken = (id, role) => {
     return jwt.sign({ id, role }, process.env.JWT_SECRET, {
@@ -12,10 +12,8 @@ const generateToken = (id, role) => {
 const registerUser = asyncHandler(async (req, res) => {
     const { name, email, password, role, phone, address, city, state,
             services, experience, bio, hourlyRate, areaOfOperation,
-            // NEW: idProofUrl now comes directly from body (not file)
-            aadhaarNumber, idProofUrl, // Reverted to single idProofUrl
-            // profilePicture now comes directly from body (if we want to allow initial pic via URL)
-            profilePicture } = req.body; // Added profilePicture to body
+            // Reverted: idProofUrl and profilePicture now come from body (not files)
+            aadhaarNumber, idProofUrl, profilePicture } = req.body; 
 
     if (!name || !email || !password || !phone || !city || !state) {
         res.status(400);
@@ -49,10 +47,10 @@ const registerUser = asyncHandler(async (req, res) => {
             userData.hourlyRate = hourlyRate || 0;
             userData.areaOfOperation = areaOfOperation || [];
             
-            // Reverted: Use URL from body, not file upload
+            // Reverted: Use URLs from body, not file uploads
             userData.aadhaarNumber = aadhaarNumber || '';
-            userData.idProofUrl = idProofUrl || ''; // Reverted to single URL
-            if (profilePicture) userData.profilePicture = profilePicture; // Set from body if provided
+            userData.idProofUrl = idProofUrl || ''; // Single URL field
+            userData.profilePicture = profilePicture || 'https://via.placeholder.com/150/CCCCCC/FFFFFF?text=Avatar'; // Use provided URL or default
 
             userData.isIdentityVerified = false; // Always false on registration
             userData.isProfileComplete = !!(userData.bio && userData.services.length > 0 && userData.experience >= 0);
@@ -67,7 +65,7 @@ const registerUser = asyncHandler(async (req, res) => {
                 isProfileComplete: user.isProfileComplete, profilePicture: user.profilePicture,
                 bio: user.bio, services: user.services, experience: user.experience,
                 hourlyRate: user.hourlyRate, areaOfOperation: user.areaOfOperation,
-                aadhaarNumber: user.aadhaarNumber, idProofUrl: user.idProofUrl, isIdentityVerified: user.isIdentityVerified, // Reverted
+                aadhaarNumber: user.aadhaarNumber, idProofUrl: user.idProofUrl, isIdentityVerified: user.isIdentityVerified,
                 token: generateToken(user._id, user.role),
             });
         } else {
@@ -94,7 +92,7 @@ const loginUser = asyncHandler(async (req, res) => {
                 isProfileComplete: user.isProfileComplete, profilePicture: user.profilePicture,
                 bio: user.bio, services: user.services, experience: user.experience,
                 hourlyRate: user.hourlyRate, areaOfOperation: user.areaOfOperation,
-                aadhaarNumber: user.aadhaarNumber, idProofUrl: user.idProofUrl, isIdentityVerified: user.isIdentityVerified, // Reverted
+                aadhaarNumber: user.aadhaarNumber, idProofUrl: user.idProofUrl, isIdentityVerified: user.isIdentityVerified,
                 token: generateToken(user._id, user.role),
             });
         } else {

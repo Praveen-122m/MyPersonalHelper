@@ -1,7 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
-// Removed Cloudinary import
+// Removed Cloudinary import (if it was there)
 
 const generateToken = (id, role) => {
     return jwt.sign({ id, role }, process.env.JWT_SECRET, {
@@ -58,7 +58,7 @@ const updateHelperProfile = asyncHandler(async (req, res) => {
         
         helper.isProfileComplete = !!(helper.bio && helper.services.length > 0 && helper.experience !== undefined && helper.experience !== null && helper.experience >= 0);
 
-        // Reverted: Use URL from body, not file upload
+        // Reverted: Use URLs from body, not file uploads
         helper.profilePicture = req.body.profilePicture !== undefined ? req.body.profilePicture : helper.profilePicture; // Handle profilePicture from body
         helper.aadhaarNumber = req.body.aadhaarNumber !== undefined ? req.body.aadhaarNumber : helper.aadhaarNumber;
         helper.idProofUrl = req.body.idProofUrl !== undefined ? req.body.idProofUrl : helper.idProofUrl; // Reverted to single URL

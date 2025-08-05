@@ -12,10 +12,15 @@ const HelperProfilePage = () => {
     name: '', email: '', phone: '', address: '', city: '', state: '',
     profilePicture: '', bio: '', services: [], experience: '', hourlyRate: '',
     areaOfOperation: [], availability: 'Full-time',
-    aadhaarNumber: '', idProofUrl: '', // Reverted to single URL
+    aadhaarNumber: '', idProofUrl: '',
   });
 
-  // Removed file states (profilePictureFile, idProofFrontFile, idProofBackFile)
+  const [profilePictureFile, setProfilePictureFile] = useState(null); 
+  const [idProofFrontFile, setIdProofFrontFile] = useState(null); 
+  const [idProofBackFile, setIdProofBackFile] = useState(null); 
+  
+  // NEW STATE: For image preview
+  const [profilePicturePreviewUrl, setProfilePicturePreviewUrl] = useState(null);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -47,7 +52,7 @@ const HelperProfilePage = () => {
             hourlyRate: data.hourlyRate || '', areaOfOperation: data.areaOfOperation || [],
             availability: data.availability || 'Full-time',
             aadhaarNumber: data.aadhaarNumber || '', 
-            idProofUrl: data.idProofUrl || '', // Reverted
+            idProofUrl: data.idProofUrl || '',
           });
           setLoading(false);
         } catch (err) {
@@ -63,12 +68,35 @@ const HelperProfilePage = () => {
     }
   }, [navigate]);
 
+  // NEW useEffect for preview cleanup
+  useEffect(() => {
+    // Cleanup function to revoke the object URL when component unmounts or preview changes
+    return () => {
+      if (profilePicturePreviewUrl) {
+        URL.revokeObjectURL(profilePicturePreviewUrl);
+      }
+    };
+  }, [profilePicturePreviewUrl]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Removed handleFileChange function
+  const handleFileChange = (e, setFileState, setPreviewUrlState = null) => {
+    const file = e.target.files[0];
+    setFileState(file); // Set the File object
+
+    // Create and set preview URL if a file is selected and a preview state setter is provided
+    if (setPreviewUrlState) {
+      if (file) {
+        const url = URL.createObjectURL(file);
+        setPreviewUrlState(url);
+      } else {
+        setPreviewUrlState(null); // Clear preview if no file selected
+      }
+    }
+  };
 
   const handleArrayChange = (e) => {
     const { name, value } = e.target;
@@ -80,25 +108,28 @@ const HelperProfilePage = () => {
     setError('');
     setSuccess('');
 
-    // Reverted: Sending data as JSON again, not FormData
     const dataToSend = { ...formData };
-    dataToSend.services = formData.services.join(','); // Convert arrays to strings for JSON
+    dataToSend.services = formData.services.join(','); 
     dataToSend.areaOfOperation = formData.areaOfOperation.join(',');
 
     try {
       const config = {
         headers: {
-          'Content-Type': 'application/json', // Reverted to JSON
+          'Content-Type': 'application/json', 
           Authorization: `Bearer ${userInfo.token}`,
         },
       };
 
-      const { data } = await axios.put('http://localhost:5000/api/helpers/profile', dataToSend, config); // Send JSON data
+      const { data } = await axios.put('http://localhost:5000/api/helpers/profile', dataToSend, config); 
       setSuccess('Profile updated successfully!');
       const updatedUserInfo = { ...userInfo, ...data };
       localStorage.setItem('userInfo', JSON.stringify(updatedUserInfo));
       setUserInfo(updatedUserInfo);
-      // No need to reset file inputs
+      // Reset file input states (important for re-uploading same file)
+      setProfilePictureFile(null);
+      setIdProofFrontFile(null);
+      setIdProofBackFile(null);
+      setProfilePicturePreviewUrl(null); // Clear preview after submission
     } catch (err) {
       setError(err.response && err.response.data.message ? err.response.data.message : 'Profile update failed. Please try again.');
     }
@@ -167,19 +198,35 @@ const HelperProfilePage = () => {
             </Row>
 
             <h4 className="mb-3 mt-4 text-primary">Helper Details</h4>
-            <Form.Group className="mb-3" controlId="profilePicture"> {/* Reverted to URL */}
-                <Form.Label className={labelClass}>Profile Picture URL</Form.Label>
-                <Form.Control 
-                    type="url" 
-                    name="profilePicture"
-                    value={formData.profilePicture}
-                    onChange={handleChange}
-                    placeholder="e.g., https://example.com/your-photo.jpg" 
-                    className={inputClass} 
-                />
-                {formData.profilePicture && (
-                    <img src={formData.profilePicture} alt="Profile Preview" className="mt-2" style={{width: '100px', height: '100px', borderRadius: '50%', objectFit: 'cover', border: `2px solid ${theme === 'dark' ? '#ffc107' : '#0d6efd'}`}} />
+            <Form.Group className="mb-3" controlId="profilePicture">
+                <Form.Label className={labelClass}>Current Profile Picture</Form.Label>
+                {/* Display current saved profile picture OR default avatar */}
+                {(formData.profilePicture && formData.profilePicture !== 'https://via.placeholder.com/150/CCCCCC/FFFFFF?text=Avatar') && (
+                    <div className="mb-2">
+                        <img src={formData.profilePicture} alt="Current Profile" className="img-fluid rounded-circle" style={{width: '100px', height: '100px', objectFit: 'cover', border: `2px solid ${theme === 'dark' ? '#ffc107' : '#0d6efd'}`}} />
+                    </div>
                 )}
+                {/* NEW: Display live preview of selected file OR fallback to current/default */}
+                {profilePicturePreviewUrl ? (
+                    <div className="mb-2">
+                        <img src={profilePicturePreviewUrl} alt="New Profile Preview" className="img-fluid rounded-circle" style={{width: '100px', height: '100px', objectFit: 'cover', border: `2px solid ${theme === 'dark' ? '#ffc107' : '#0d6efd'}`}} />
+                    </div>
+                ) : ( // Show default if no current saved pic and no new pic selected
+                    !formData.profilePicture && (
+                        <div className="mb-2">
+                            <img src='https://via.placeholder.com/150/CCCCCC/FFFFFF?text=Avatar' alt="Default Profile" className="img-fluid rounded-circle" style={{width: '100px', height: '100px', objectFit: 'cover', border: `2px solid ${theme === 'dark' ? '#ffc107' : '#0d6efd'}`}} />
+                        </div>
+                    )
+                )}
+
+                <Form.Label className={labelClass}>Upload New Profile Picture (Image File)</Form.Label>
+                <Form.Control 
+                    type="file" 
+                    onChange={(e) => handleFileChange(e, setProfilePictureFile, setProfilePicturePreviewUrl)} // Pass preview setter
+                    className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''} 
+                    accept="image/*"
+                />
+                {profilePictureFile && <Form.Text className={labelClass}>Selected: {profilePictureFile.name}</Form.Text>}
             </Form.Group>
 
             <Form.Group className="mb-3" controlId="bio">
@@ -193,11 +240,11 @@ const HelperProfilePage = () => {
             <Row className="mb-3">
               <Form.Group as={Col} controlId="experience">
                 <Form.Label className={labelClass}>Years of Experience</Form.Label>
-                <Form.Control type="number" name="experience" value={formData.experience} onChange={handleChange} min="0" className={inputClass} />
+                <Form.Control type="number" name="experience" value={formData.experience} onChange={handleChange} min="0" className={inputClass} /> 
               </Form.Group>
               <Form.Group as={Col} controlId="hourlyRate">
                 <Form.Label className={labelClass}>Hourly Rate (₹)</Form.Label>
-                <Form.Control type="number" name="hourlyRate" value={formData.hourlyRate} onChange={handleChange} min="0" className={inputClass} />
+                <Form.Control type="number" name="hourlyRate" value={formData.hourlyRate} onChange={handleChange} min="0" className={inputClass} /> 
               </Form.Group>
             </Row>
             <Row className="mb-4">
@@ -220,7 +267,7 @@ const HelperProfilePage = () => {
             <h4 className="mb-3 mt-4 text-primary">Identity Verification (Demo)</h4>
             <Alert variant={formData.isIdentityVerified ? "success" : "warning"} className="mb-3">
                 {formData.isIdentityVerified ? 
-                    <> <i className="bi bi-check-circle-fill me-2"></i> Identity Verified by Admin (Cannot be changed here) </> : 
+                    <> <i className="bi bi-patch-check-fill me-2"></i> Identity Verified by Admin (Cannot be changed here) </> : 
                     <> <i className="bi bi-exclamation-triangle-fill me-2"></i> Status: Pending Admin Verification </>
                 }
             </Alert>
@@ -238,17 +285,21 @@ const HelperProfilePage = () => {
                     minLength="12"
                 />
             </Form.Group>
-            <Form.Group className="mb-4" controlId="idProofUrl"> {/* Reverted */}
+            <Form.Group className="mb-4" controlId="idProofUrl">
                 <Form.Label className={labelClass}>ID Proof Document URL (e.g., Aadhaar Card Photo)</Form.Label>
+                {formData.idProofUrl && ( 
+                    <div className="mb-2">
+                        <img src={formData.idProofUrl} alt="ID Proof Preview" className="img-fluid rounded" style={{maxWidth: '200px', border: `1px solid ${theme === 'dark' ? '#ffc107' : '#0d6efd'}`}} />
+                    </div>
+                )}
+                {/* This input will now be a file type */}
                 <Form.Control 
-                    type="url" 
-                    name="idProofUrl"
-                    value={formData.idProofUrl} 
-                    onChange={handleChange} 
-                    placeholder="Link to your Aadhaar card photo (e.g., Google Drive link)" 
-                    required 
-                    className={inputClass} 
+                    type="file" 
+                    onChange={(e) => handleFileChange(e, setIdProofFrontFile)} // We'll reuse this for a single ID proof file input
+                    className={theme === 'dark' ? 'bg-dark text-light border-secondary' : ''} 
+                    accept="image/*"
                 />
+                {idProofFrontFile && <Form.Text className={labelClass}>Selected: {idProofFrontFile.name}</Form.Text>}
             </Form.Group>
 
             <Button variant={theme === 'dark' ? 'warning' : 'primary'} type="submit" className="w-100">

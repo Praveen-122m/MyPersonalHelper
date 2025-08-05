@@ -47,7 +47,7 @@ const userSchema = mongoose.Schema(
         },
         profilePicture: { // This now stores a simple URL again
             type: String,
-            default: '/images/default_avatar.png', // Default local image
+            default: 'https://via.placeholder.com/150/CCCCCC/FFFFFF?text=Avatar', // Public placeholder URL
         },
         bio: {
             type: String,
