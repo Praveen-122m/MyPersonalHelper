@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const { registerUser, loginUser } = require('../controllers/authController');
-// Removed upload middleware import (if it was there)
 
-// Route for registration, now accepting JSON data (no file upload middleware)
-router.post('/register',
+// Ab file upload middleware nahi hai, sirf JSON data aayega
+router.post(
+    '/register',
     registerUser
 );
 

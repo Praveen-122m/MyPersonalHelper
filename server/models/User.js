@@ -33,21 +33,21 @@ const userSchema = mongoose.Schema(
         city: {
             type: String,
             required: true,
-            default: 'Pali'
+            // REMOVED: default: 'Pali'
         },
         state: {
             type: String,
             required: true,
-            default: 'Rajasthan'
+            // REMOVED: default: 'Rajasthan'
         },
         // --- HELPER-SPECIFIC FIELDS ---
         isProfileComplete: {
             type: Boolean,
             default: false,
         },
-        profilePicture: { // This now stores a simple URL again
+        profilePicture: {
             type: String,
-            default: 'https://via.placeholder.com/150/CCCCCC/FFFFFF?text=Avatar', // Public placeholder URL
+            default: 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png',
         },
         bio: {
             type: String,
@@ -83,13 +83,12 @@ const userSchema = mongoose.Schema(
             type: String,
             default: 'Full-time',
         },
-        // --- IDENTITY VERIFICATION FIELDS (for Helpers) ---
         aadhaarNumber: {
             type: String,
             required: function() { return this.role === 'helper'; },
             sparse: true,
         },
-        idProofUrl: { // Reverted to single URL field
+        idProofUrl: {
             type: String,
             default: '',
         },

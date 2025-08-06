@@ -7,15 +7,13 @@ const {
     getHelperById
 } = require('../controllers/helperController');
 const { protect, authorize } = require('../middleware/authMiddleware');
-// Removed upload middleware import
 
-// Route for a helper to get and update their own profile, no longer accepting files directly
+// Ab file upload middleware nahi hai, sirf JSON data aayega
 router.route('/profile')
     .get(protect, authorize('helper'), getHelperProfile)
     .put(
         protect,
         authorize('helper'),
-        // Removed upload.fields middleware
         updateHelperProfile
     );
 

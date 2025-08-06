@@ -1,7 +1,6 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
-// Removed Cloudinary import (if it was there)
 
 const generateToken = (id, role) => {
     return jwt.sign({ id, role }, process.env.JWT_SECRET, {
@@ -12,7 +11,6 @@ const generateToken = (id, role) => {
 const registerUser = asyncHandler(async (req, res) => {
     const { name, email, password, role, phone, address, city, state,
             services, experience, bio, hourlyRate, areaOfOperation,
-            // Reverted: idProofUrl and profilePicture now come from body (not files)
             aadhaarNumber, idProofUrl, profilePicture } = req.body; 
 
     if (!name || !email || !password || !phone || !city || !state) {
@@ -46,13 +44,13 @@ const registerUser = asyncHandler(async (req, res) => {
             userData.bio = bio || '';
             userData.hourlyRate = hourlyRate || 0;
             userData.areaOfOperation = areaOfOperation || [];
-            
-            // Reverted: Use URLs from body, not file uploads
-            userData.aadhaarNumber = aadhaarNumber || '';
-            userData.idProofUrl = idProofUrl || ''; // Single URL field
-            userData.profilePicture = profilePicture || 'https://via.placeholder.com/150/CCCCCC/FFFFFF?text=Avatar'; // Use provided URL or default
 
-            userData.isIdentityVerified = false; // Always false on registration
+            userData.profilePicture = 'https://cdn-icons-png.flaticon.com/512/3135/3135715.png';
+
+            userData.aadhaarNumber = aadhaarNumber || '';
+            userData.idProofUrl = idProofUrl || '';
+
+            userData.isIdentityVerified = false;
             userData.isProfileComplete = !!(userData.bio && userData.services.length > 0 && userData.experience >= 0);
         }
 

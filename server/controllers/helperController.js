@@ -1,7 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
-// Removed Cloudinary import (if it was there)
 
 const generateToken = (id, role) => {
     return jwt.sign({ id, role }, process.env.JWT_SECRET, {
@@ -21,7 +20,7 @@ const getHelperProfile = asyncHandler(async (req, res) => {
             numReviews: helper.numReviews, hourlyRate: helper.hourlyRate,
             areaOfOperation: helper.areaOfOperation, availability: helper.availability,
             isProfileComplete: helper.isProfileComplete,
-            aadhaarNumber: helper.aadhaarNumber, idProofUrl: helper.idProofUrl, isIdentityVerified: helper.isIdentityVerified, // Reverted
+            aadhaarNumber: helper.aadhaarNumber, idProofUrl: helper.idProofUrl, isIdentityVerified: helper.isIdentityVerified,
         });
     } else {
         res.status(404);
@@ -40,17 +39,17 @@ const updateHelperProfile = asyncHandler(async (req, res) => {
         helper.city = req.body.city !== undefined ? req.body.city : helper.city;
         helper.state = req.body.state !== undefined ? req.body.state : helper.state;
 
-        helper.bio = req.body.bio !== undefined ? req.body.bio : helper.bio;
-        helper.services = Array.isArray(req.body.services) ? req.body.services.filter(s => s.trim() !== '') : helper.services;
-        if (typeof req.body.services === 'string') {
+        // --- FIX: Correctly handle services from req.body, which is a string ---
+        if (req.body.services) {
             helper.services = req.body.services.split(',').map(s => s.trim()).filter(s => s !== '');
         }
-
+        
+        helper.bio = req.body.bio !== undefined ? req.body.bio : helper.bio;
         helper.experience = req.body.experience !== undefined ? req.body.experience : helper.experience;
         helper.hourlyRate = req.body.hourlyRate !== undefined ? req.body.hourlyRate : helper.hourlyRate;
 
-        helper.areaOfOperation = Array.isArray(req.body.areaOfOperation) ? req.body.areaOfOperation.filter(a => a.trim() !== '') : helper.areaOfOperation;
-        if (typeof req.body.areaOfOperation === 'string') {
+        // --- FIX: Correctly handle areaOfOperation from req.body, which is a string ---
+        if (req.body.areaOfOperation) {
              helper.areaOfOperation = req.body.areaOfOperation.split(',').map(a => a.trim()).filter(a => a !== '');
         }
 
@@ -58,10 +57,10 @@ const updateHelperProfile = asyncHandler(async (req, res) => {
         
         helper.isProfileComplete = !!(helper.bio && helper.services.length > 0 && helper.experience !== undefined && helper.experience !== null && helper.experience >= 0);
 
-        // Reverted: Use URLs from body, not file uploads
-        helper.profilePicture = req.body.profilePicture !== undefined ? req.body.profilePicture : helper.profilePicture; // Handle profilePicture from body
+        // This part is for URL-based uploads, which is now the chosen method
+        helper.profilePicture = req.body.profilePicture !== undefined ? req.body.profilePicture : helper.profilePicture;
         helper.aadhaarNumber = req.body.aadhaarNumber !== undefined ? req.body.aadhaarNumber : helper.aadhaarNumber;
-        helper.idProofUrl = req.body.idProofUrl !== undefined ? req.body.idProofUrl : helper.idProofUrl; // Reverted to single URL
+        helper.idProofUrl = req.body.idProofUrl !== undefined ? req.body.idProofUrl : helper.idProofUrl;
 
 
         if (req.body.password) {
@@ -79,7 +78,7 @@ const updateHelperProfile = asyncHandler(async (req, res) => {
             averageRating: updatedHelper.averageRating, numReviews: updatedHelper.numReviews,
             hourlyRate: updatedHelper.hourlyRate, areaOfOperation: updatedHelper.areaOfOperation,
             availability: updatedHelper.availability, isProfileComplete: updatedHelper.isProfileComplete,
-            aadhaarNumber: updatedHelper.aadhaarNumber, idProofUrl: updatedHelper.idProofUrl, isIdentityVerified: updatedHelper.isIdentityVerified, // Reverted
+            aadhaarNumber: updatedHelper.aadhaarNumber, idProofUrl: updatedHelper.idProofUrl, isIdentityVerified: updatedHelper.isIdentityVerified,
         });
     } else {
         res.status(404);
